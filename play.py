@@ -14,7 +14,8 @@ scene.reset()
 model_name = sys.argv[1]
 
 if using_cnn:
-    model = keras.models.load_model(f"models/CNN_model{model_name}.h5")
+    #model = keras.models.load_model(f"models/CNN_model{model_name}.h5")
+    model = keras.models.load_model(f"models/CNN_model_{model_name}_epsilon_0.1_retrained.h5")
 else:
     model = keras.models.load_model(f"models/model{model_name}.h5")
 
