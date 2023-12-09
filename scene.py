@@ -4,6 +4,7 @@ import random
 import time
 import sys
 import numpy as np
+import tensorflow as tf
 
 MAP_WIDTH = 5
 MAP_HEIGHT = 5
@@ -11,7 +12,7 @@ BLOCK_SIZE = 15
 
 class Scene:
     def __init__(self, using_cnn=False, init_randomly=False):
-        self.height = MAP_HEIGHT + 2; self.width = MAP_WIDTH + 2
+        self.height = MAP_HEIGHT; self.width = MAP_WIDTH
         self.block_size = BLOCK_SIZE
         self.using_cnn = using_cnn
         self.init_randomly = init_randomly
@@ -19,7 +20,8 @@ class Scene:
         self.feature_count = self.scene_as_feature_vector().shape[0]
         self.elements_count = 5 # Empty, Snake Head, Snake Body, Food, Wall
         
-    def move(self):
+    def move(self, action):
+        self.snake.change_direction(action)
         reward = 0
         done = False
         prev_head = self.snake.body[0]
@@ -29,7 +31,7 @@ class Scene:
         if abs(self.snake.body[0][0] - self.food_position[0]) + abs(self.snake.body[0][1] - self.food_position[1]) < abs(prev_head[0] - self.food_position[0]) + abs(prev_head[1] - self.food_position[1]):
             reward += 1
         else:
-            reward -= 1
+            reward -= 0.2
         
         if self.snake.body[0] == self.food_position:
             self.new_food_position()
@@ -55,45 +57,35 @@ class Scene:
     def init_snake(self):
         if self.init_randomly:
             head = (random.randint(0, MAP_WIDTH - 1), random.randint(0, MAP_HEIGHT - 1))
+            
+            possible = [0, 1, 2, 3]
             if head[0] == 0:
-                possible = [1, 2, 3]
-                tail = random.choice(possible)
-                possible.remove(tail)
-                direction = random.choice(possible)
-            elif head[0] == MAP_WIDTH - 1:
-                possible = [0, 1, 3]
-                tail = random.choice(possible)
-                possible.remove(tail)
-                direction = random.choice(possible)
-            elif head[1] == 0:
-                possible = [0, 2, 3]
-                tail = random.choice(possible)
-                possible.remove(tail)
-                direction = random.choice(possible)
-            elif head[1] == MAP_HEIGHT - 1:
-                possible = [0, 1, 2]
-                tail = random.choice(possible)
-                possible.remove(tail)
-                direction = random.choice(possible)
-            else:
-                possible = [0, 1, 2, 3]
-                tail = random.choice(possible)
-                possible.remove(tail)
-                direction = random.choice(possible)
+                possible.remove(0)
+            if head[0] == MAP_WIDTH - 1:
+                possible.remove(2)
+            if head[1] == 0:
+                possible.remove(1)
+            if head[1] == MAP_HEIGHT - 1:
+                possible.remove(3)
+            
+            tail = random.choice(possible)
+            possible.remove(tail)
+            direction = random.choice(possible)
                 
             snake_initial_body = [head]
             if tail == 0:
-                snake_initial_body.append((head[0] + 1, head[1]))
-            elif tail == 1:
-                snake_initial_body.append((head[0], head[1] + 1))
-            elif tail == 2:
                 snake_initial_body.append((head[0] - 1, head[1]))
-            elif tail == 3:
+            elif tail == 1:
                 snake_initial_body.append((head[0], head[1] - 1))
+            elif tail == 2:
+                snake_initial_body.append((head[0] + 1, head[1]))
+            elif tail == 3:
+                snake_initial_body.append((head[0], head[1] + 1))
         else:
             snake_initial_body = [(MAP_WIDTH // 2, MAP_HEIGHT // 2), (MAP_WIDTH // 2 + 1, MAP_HEIGHT // 2)]
         
         self.snake = Snake(snake_initial_body)
+        self.snake.direction = direction
             
     def new_food_position(self):
         possible_food_positions = [(x, y) for x in range(MAP_WIDTH) for y in range(MAP_HEIGHT) if (x, y) not in self.snake.body]
@@ -136,10 +128,13 @@ class Scene:
         matrix[self.food_position[1], self.food_position[0]] = 3
         
         # Create another matrix, the same as matrix, but with a border of walls
-        matrix_with_walls = np.ones((MAP_WIDTH + 2, MAP_HEIGHT + 2)) * 4
-        matrix_with_walls[1:-1, 1:-1] = matrix
+        # matrix_with_walls = np.ones((MAP_WIDTH + 2, MAP_HEIGHT + 2)) * 4
+        # matrix_with_walls[1:-1, 1:-1] = matrix
         
-        return matrix_with_walls
+        # Convert matrix to one-hot encoding
+        matrix_one_hot = tf.one_hot(matrix, self.elements_count)
+        
+        return matrix_one_hot
     
     def scene_as_feature_vector(self):
         food_is_up = self.food_position[1] < self.snake.body[0][1]

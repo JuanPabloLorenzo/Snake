@@ -24,7 +24,7 @@ class Snake:
 
     def change_direction(self, new_direction):
         # Don't let the snake go in the opposite direction
-        if self.direction == (new_direction + 2) % 4:
-            return
+        # if self.direction == (new_direction + 2) % 4:
+        #     return
         
         self.direction = new_direction
