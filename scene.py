@@ -1,3 +1,5 @@
+import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 from snake import Snake
 import random
@@ -11,14 +13,12 @@ MAP_HEIGHT = 5
 BLOCK_SIZE = 15
 
 class Scene:
-    def __init__(self, using_cnn=False, init_randomly=False):
+    def __init__(self, init_randomly=False):
         self.height = MAP_HEIGHT; self.width = MAP_WIDTH
         self.block_size = BLOCK_SIZE
-        self.using_cnn = using_cnn
         self.init_randomly = init_randomly
         self.reset()
-        self.feature_count = self.scene_as_feature_vector().shape[0]
-        self.elements_count = 5 # Empty, Snake Head, Snake Body, Food, Wall
+        self.elements_count = 4 # Empty, Snake Head, Snake Body, Food
         
     def move(self, action):
         self.snake.change_direction(action)
@@ -47,10 +47,7 @@ class Scene:
             self.init_snake()
             self.new_food_position()
           
-        if self.using_cnn:
-            next_state = self.scene_as_matrix()
-        else:
-            next_state = self.scene_as_feature_vector()  
+        next_state = self.scene_as_matrix()
         
         return next_state, reward, done
     
@@ -83,6 +80,7 @@ class Scene:
                 snake_initial_body.append((head[0], head[1] + 1))
         else:
             snake_initial_body = [(MAP_WIDTH // 2, MAP_HEIGHT // 2), (MAP_WIDTH // 2 + 1, MAP_HEIGHT // 2)]
+            direction = 0
         
         self.snake = Snake(snake_initial_body)
         self.snake.direction = direction
@@ -109,50 +107,23 @@ class Scene:
         pygame.display.update()
         
     def scene_as_matrix(self):
-        # Empty: 0, Snake Head: 1, Snake Body: 2, Food: 3, Wall: 4
+        # Empty: 0, Snake Head: 1, Snake Body: 2, Food: 3
         matrix = np.zeros((MAP_WIDTH, MAP_HEIGHT))
         
         # Remember that the first coordinate is the y coordinate in Pygame
         # Draw the snake
-        
         head_x, head_y = self.snake.body[0]
-        if 0 <= head_x < MAP_WIDTH and 0 <= head_y < MAP_HEIGHT:
-            matrix[head_y, head_x] = 1
+        matrix[head_y, head_x] = 1
             
         for block in self.snake.body[1:]:
             x, y = block
-            if 0 <= x < MAP_WIDTH and 0 <= y < MAP_HEIGHT:
-                matrix[y, x] = 2
+            matrix[y, x] = 2
                 
         # Draw the food
         matrix[self.food_position[1], self.food_position[0]] = 3
         
-        # Create another matrix, the same as matrix, but with a border of walls
-        # matrix_with_walls = np.ones((MAP_WIDTH + 2, MAP_HEIGHT + 2)) * 4
-        # matrix_with_walls[1:-1, 1:-1] = matrix
-        
-        # Convert matrix to one-hot encoding
-        matrix_one_hot = tf.one_hot(matrix, self.elements_count)
-        
-        return matrix_one_hot
+        return matrix
     
-    def scene_as_feature_vector(self):
-        food_is_up = self.food_position[1] < self.snake.body[0][1]
-        food_is_down = self.food_position[1] > self.snake.body[0][1]
-        food_is_left = self.food_position[0] < self.snake.body[0][0]
-        food_is_right = self.food_position[0] > self.snake.body[0][0]
-        wall_is_up = self.snake.body[0][1] == 0 and self.snake.direction == 1
-        wall_is_down = self.snake.body[0][1] == MAP_HEIGHT - 1 and self.snake.direction == 3
-        wall_is_left = self.snake.body[0][0] == 0 and self.snake.direction == 0
-        wall_is_right = self.snake.body[0][0] == MAP_WIDTH - 1 and self.snake.direction == 2
-        head_x, head_y = self.snake.body[0]
-        body_is_up = (head_x, head_y - 1) in self.snake.body
-        body_is_down = (head_x, head_y + 1) in self.snake.body
-        body_is_left = (head_x - 1, head_y) in self.snake.body
-        body_is_right = (head_x + 1, head_y) in self.snake.body
-        
-        return np.array([food_is_up, food_is_down, food_is_left, food_is_right, wall_is_up, wall_is_down, wall_is_left, wall_is_right, body_is_up, body_is_down, body_is_left, body_is_right])
-        
     def run(self):
         pygame.init()
         self.screen = pygame.display.set_mode((MAP_WIDTH * BLOCK_SIZE, MAP_HEIGHT * BLOCK_SIZE))
