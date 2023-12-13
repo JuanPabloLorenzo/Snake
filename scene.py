@@ -25,23 +25,19 @@ class Scene:
         reward = 0
         done = False
         prev_head = self.snake.body[0]
-        self.snake.move(self.food_position)
+        valid_move = self.snake.move(self.food_position)
         
-        # If the snake gets closer to the food, give it a reward
-        if abs(self.snake.body[0][0] - self.food_position[0]) + abs(self.snake.body[0][1] - self.food_position[1]) < abs(prev_head[0] - self.food_position[0]) + abs(prev_head[1] - self.food_position[1]):
-            reward += 1
-        else:
-            reward -= 0.2
-        
-        if self.snake.body[0] == self.food_position:
+        if not valid_move: # The snake collided with itself or move in the opposite direction
+            done = True
+            reward -= 15
+        elif self.snake.body[0] == self.food_position:
             self.new_food_position()
-            reward += 10
+            reward += 25
         elif self.snake.body[0][0] < 0 or self.snake.body[0][0] >= self.width or self.snake.body[0][1] < 0 or self.snake.body[0][1] >= self.height:
             done = True
-            reward -= 30
-        elif self.snake.body[0] in self.snake.body[1:]:
-            done = True
-            reward -= 30
+            reward -= 15
+        else:
+            reward -= 1
             
         if done:
             self.init_snake()
@@ -127,6 +123,7 @@ class Scene:
     def run(self):
         pygame.init()
         self.screen = pygame.display.set_mode((MAP_WIDTH * BLOCK_SIZE, MAP_HEIGHT * BLOCK_SIZE))
+        movement_queue = np.array([])
         
         running = True
         while running:
@@ -137,15 +134,23 @@ class Scene:
                 # Check if the user pressed an arrow key
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_UP:
-                        self.snake.change_direction("UP")
+                        movement_queue = np.append(movement_queue, 1)
                     elif event.key == pygame.K_DOWN:
-                        self.snake.change_direction("DOWN")
+                        movement_queue = np.append(movement_queue, 3)
                     elif event.key == pygame.K_LEFT:
-                        self.snake.change_direction("LEFT")
+                        movement_queue = np.append(movement_queue, 0)
                     elif event.key == pygame.K_RIGHT:
-                        self.snake.change_direction("RIGHT")
+                        movement_queue = np.append(movement_queue, 2)
+                        
+            if len(movement_queue) > 0:
+                self.snake.change_direction(int(movement_queue[0]))
+                movement_queue = np.delete(movement_queue, 0)
             
-            self.move()
+            _, _, done = self.move(self.snake.direction)
+            
+            if done:
+                self.reset()
+                
             self.draw()
 
             # Slow down the game
@@ -154,3 +159,7 @@ class Scene:
         # Quit Pygame
         pygame.quit()
         sys.exit()
+        
+if __name__ == '__main__':
+    scene = Scene(init_randomly=True)
+    scene.run()

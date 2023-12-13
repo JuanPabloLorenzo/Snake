@@ -6,12 +6,13 @@ from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten
 import multiprocessing
 import sys
 
-def training_step(batch_size, replay_buffer, discount_rate):
+def training_step(batch_size, discount_rate):
     if len(replay_buffer) < batch_size * 3:
         return
     
     states, actions, rewards, next_states, dones = sample_experiences(batch_size, replay_buffer)
-    next_Q_values = target.predict(next_states, verbose=False)
+    # next_Q_values = target.predict(next_states, verbose=False)
+    next_Q_values = model.predict(next_states, verbose=False)
     max_next_Q_values = np.max(next_Q_values, axis=1)
     target_Q_values = (rewards + (1 - dones) * discount_rate * max_next_Q_values).reshape(-1, 1)
     mask = tf.one_hot(actions, 4)
@@ -36,7 +37,14 @@ def sample_experiences(batch_size, replay_buffer):
     batch = []
     for index in indices:
         try:
-            batch.append(replay_buffer[index]) # The queue.qsize() is not reliable
+            batch.append(replay_buffer[index]) # Puede variar en el medio de la ejecución
+        except:
+            pass
+        
+    # Remove all the elements in indices from the replay buffer
+    for index in sorted(indices, reverse=True):
+        try:
+            replay_buffer.pop(index)
         except:
             pass
             
@@ -53,10 +61,9 @@ def play_one_step(model, scene, state, epsilon, replay_buffer):
 
 def experience_collector(model_weigths, scene, epsilon, episodes, avg_reward_queue, replay_buffer):
     model = keras.Sequential([
-        Conv2D(12, (3, 3), activation='relu', padding="same", kernel_initializer='he_normal', input_shape=(scene.height, scene.width, scene.elements_count)),
-        Conv2D(12, (3, 3), activation='relu', strides=2, padding="same", kernel_initializer='he_normal'),
+        Conv2D(8, (3, 3), activation='relu', strides=2, padding="same", kernel_initializer='he_normal', input_shape=(scene.height, scene.width, scene.elements_count)),
         Flatten(),    
-        Dense(16, activation='relu', kernel_initializer='he_normal'),
+        Dense(32, activation='relu', kernel_initializer='he_normal'),
         Dense(4, activation='linear')
     ])
     model.set_weights(model_weigths)
@@ -69,7 +76,7 @@ def experience_collector(model_weigths, scene, epsilon, episodes, avg_reward_que
         done = False
         steps = 0
         
-        while not done and steps < 200:
+        while not done and steps < 50:
             steps += 1
             _, reward, done = play_one_step(model, scene, state, epsilon, replay_buffer)
             avg_reward += reward
@@ -82,30 +89,28 @@ if __name__ == '__main__':
     scene = Scene(init_randomly=True)
 
     model = keras.Sequential([
-        Conv2D(12, (3, 3), activation='relu', padding="same", kernel_initializer='he_normal', input_shape=(scene.height, scene.width, scene.elements_count)),
-        Conv2D(12, (3, 3), activation='relu', strides=2, padding="same", kernel_initializer='he_normal'),
+        Conv2D(8, (3, 3), activation='relu', strides=2, padding="same", kernel_initializer='he_normal', input_shape=(scene.height, scene.width, scene.elements_count)),
         Flatten(),    
-        Dense(16, activation='relu', kernel_initializer='he_normal'),
+        Dense(32, activation='relu', kernel_initializer='he_normal'),
         Dense(4, activation='linear')
     ])
 
 
     optimizer = keras.optimizers.legacy.Adam(learning_rate=1e-3)
     loss_fn = keras.losses.mean_squared_error
-    model.compile(optimizer=optimizer, loss=loss_fn, metrics=["accuracy"])
 
-    target = keras.models.clone_model(model)
-    target.set_weights(model.get_weights())
+    # target = keras.models.clone_model(model)
+    # target.set_weights(model.get_weights())
     
     batch_size = 32
-    discount_rate = 0.95
+    discount_rate = 0.98
 
     # Parallel trainig: many processes for generating experiences and one process for training
     # The experience generation and the training are not done in parallel
     # The experience generation is done in parallel and is the bottleneck
-    workers_count = 8
-    episodes_count = 2400
-    epochs = 20
+    workers_count = 16
+    episodes_count = 6000
+    epochs = 10
     episodes_per_epoch = episodes_count // epochs
     episodes_per_worker_per_epoch = episodes_per_epoch // workers_count
     episodes_per_workes_first_epoch = episodes_per_worker_per_epoch*5
@@ -115,11 +120,12 @@ if __name__ == '__main__':
     # (state, action, reward, next_state, done)
     # replay_buffer = multiprocessing.Queue()
     replay_buffer = multiprocessing.Manager().list()
+    epsilons = np.linspace(1.0, 0.01, epochs)
     
     for epoch in range(epochs):
         print("Epoch:", epoch)
         processes = []
-        epsilon = 1.0 - epoch / epochs
+        epsilon = epsilons[epoch]
         model_weights = model.get_weights()
         
         worker_episodes = episodes_per_worker_per_epoch if epoch > 0 else episodes_per_workes_first_epoch
@@ -144,16 +150,20 @@ if __name__ == '__main__':
         print("Average reward:", avg_reward)
 
         # Update the target model
-        if (epoch + 1) % 2 == 0:
-            target.set_weights(model.get_weights())        
+        # if (epoch + 1) % 2 == 0:
+            # target.set_weights(model.get_weights())        
             
         # Train the model
+        print("Replay buffer size:", len(replay_buffer))
+        training_steps_count = len(replay_buffer) // batch_size
         for step in range(episodes_per_epoch):
-            training_step(batch_size, replay_buffer, discount_rate)
+            training_step(batch_size, discount_rate)
             
         # Save the model
         if (epoch + 1) % 5 == 0:
-            model.save(f"models/{epoch*episodes_per_epoch}_episodes.h5")
+            model_name = f"models/{epoch*episodes_per_epoch}_episodes.h5"
+            print("Saving model:", model_name)
+            model.save(model_name)
           
         
                 

@@ -35,7 +35,8 @@ class SnakeGame(PyEnvironment):
               corresponding to `observation_spec()`.
         """
         self.scene.reset()
-        observation = self.scene.scene_as_feature_vector() if not self.scene.using_cnn else self.scene.scene_as_matrix()
+        observation = self.scene.scene_as_matrix()
+        observation = tf.one_hot(observation, self.scene.elements_count)
         
         return ts.TimeStep(
             step_type=ts.StepType.FIRST,
@@ -61,7 +62,7 @@ class SnakeGame(PyEnvironment):
               corresponding to `observation_spec()`.
         """
         next_obs, reward, done = self.scene.move(action)
-        #discount = 1.0 if self.scene.is_game_over() else 0.0
+        next_obs = tf.one_hot(next_obs, self.scene.elements_count)
         
         return ts.TimeStep(
             step_type=ts.StepType.MID if not done else ts.StepType.LAST,

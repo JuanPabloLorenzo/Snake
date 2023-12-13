@@ -18,15 +18,20 @@ class Snake:
         elif self.direction == 2:
             new_head = (head[0] + 1, head[1])
         elif self.direction == 3:
-            new_head = (head[0], head[1] + 1) 
+            new_head = (head[0], head[1] + 1)
+            
+        # If the new head collides with the second element of the body, return false
+        if new_head == self.body[1]:
+            return False
         
         self.body.insert(0, new_head)
         if new_head != food_position:
             self.body.pop()
+            
+        if self.body[0] in self.body[1:]:
+            return False
+        
+        return True
 
     def change_direction(self, new_direction):
-        # Don't let the snake go in the opposite direction
-        # if self.direction == (new_direction + 2) % 4:
-        #     return
-        
         self.direction = new_direction

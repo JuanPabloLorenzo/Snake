@@ -27,14 +27,6 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
             running = False
         
-        
-    if done:
-        steps = 0
-        
-    if steps > 50:
-        scene.reset()
-        steps = 0
-        
     inputs = scene.scene_as_matrix()[np.newaxis]
     inputs = tf.one_hot(inputs, scene.elements_count)
         
@@ -42,8 +34,14 @@ while running:
     action = np.argmax(pred)
     
     _, _, done = scene.move(action)
-    steps += 1
+    
+    if done or steps > 50:
+        scene.reset()
+        steps = 0
+    else:
+        steps += 1
+        
     scene.draw()
 
     # Slow down the game
-    time.sleep(0.02)
+    time.sleep(0.1)
