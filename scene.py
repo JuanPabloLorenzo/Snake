@@ -42,8 +42,8 @@ class Scene:
         if done:
             self.init_snake()
             self.new_food_position()
-          
-        next_state = self.scene_as_matrix()
+            
+        next_state = self.state()
         
         return next_state, reward, done
     
@@ -120,6 +120,20 @@ class Scene:
         
         return matrix
     
+    def state(self):
+        matrix = self.scene_as_matrix()
+        matrix_one_hot = tf.one_hot(matrix, self.elements_count)
+        
+        # Make a 4 value array, indicating if there is a wall or the snake body in each direction
+        # If there is one of them, the value is 1, otherwise 0
+        head_x, head_y = self.snake.body[0]
+        left = 1 if head_x == 0 or (head_x - 1, head_y) in self.snake.body[:-1] else 0
+        up = 1 if head_y == 0 or (head_x, head_y - 1) in self.snake.body[:-1] else 0
+        right = 1 if head_x == MAP_WIDTH - 1 or (head_x + 1, head_y) in self.snake.body[:-1] else 0
+        down = 1 if head_y == MAP_HEIGHT - 1 or (head_x, head_y + 1) in self.snake.body[:-1] else 0
+        
+        return [matrix_one_hot, [left, up, right, down]]
+
     def run(self):
         pygame.init()
         self.screen = pygame.display.set_mode((MAP_WIDTH * BLOCK_SIZE, MAP_HEIGHT * BLOCK_SIZE))

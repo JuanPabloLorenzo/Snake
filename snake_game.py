@@ -13,13 +13,22 @@ class SnakeGame(PyEnvironment):
         self.reset()
         
     def observation_spec(self):
-        return array_spec.BoundedArraySpec(
+        scene_spec = array_spec.BoundedArraySpec(
             shape=(self.scene.height, self.scene.width, self.scene.elements_count),
             dtype=np.float32,
             minimum=0.0,
             maximum=1.0,
             name='observation'
         )
+        
+        # These are just 0 or 1 values
+        array_spec_1d = array_spec.ArraySpec(
+            shape=(4,),  # Adjust the shape according to your 1D array size
+            dtype=bool,
+            name='array_1d'
+        )
+
+        return {'scene': scene_spec, 'array_1d': array_spec_1d}
         
     def action_spec(self):
         # Define the action space using ArraySpec
@@ -37,8 +46,7 @@ class SnakeGame(PyEnvironment):
               corresponding to `observation_spec()`.
         """
         self.scene.reset()
-        observation = self.scene.scene_as_matrix()
-        observation = tf.one_hot(observation, self.scene.elements_count)
+        observation = self.scene.state()
         
         return ts.TimeStep(
             step_type=ts.StepType.FIRST,
@@ -64,7 +72,6 @@ class SnakeGame(PyEnvironment):
               corresponding to `observation_spec()`.
         """
         next_obs, reward, done = self.scene.move(action)
-        next_obs = tf.one_hot(next_obs, self.scene.elements_count)
         
         return ts.TimeStep(
             step_type=ts.StepType.MID if not done else ts.StepType.LAST,
