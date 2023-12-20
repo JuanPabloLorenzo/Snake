@@ -35,20 +35,14 @@ dict_value {
               minimum {
                 dtype: DT_FLOAT
                 tensor_shape {
-                  dim {
-                    size: 4
-                  }
                 }
-                tensor_content: "\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000\000"
+                float_val: 0.0
               }
               maximum {
                 dtype: DT_FLOAT
                 tensor_shape {
-                  dim {
-                    size: 4
-                  }
                 }
-                tensor_content: "\000\000\200?\000\000\200?\000\000\200?\000\000\200?"
+                float_val: 1.0
               }
             }
           }

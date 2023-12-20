@@ -13,11 +13,13 @@ class SnakeGame(PyEnvironment):
         self.reset()
         
     def observation_spec(self):
-        return array_spec.BoundedArraySpec(shape=(self.scene.height, self.scene.width, self.scene.elements_count),
-                                             dtype=np.float32,
-                                             minimum=[0.0 for _ in range(self.scene.elements_count)],
-                                             maximum=[1.0 for _ in range(self.scene.elements_count)],
-                                                name='observation') 
+        return array_spec.BoundedArraySpec(
+            shape=(self.scene.height, self.scene.width, self.scene.elements_count),
+            dtype=np.float32,
+            minimum=0.0,
+            maximum=1.0,
+            name='observation'
+        )
         
     def action_spec(self):
         # Define the action space using ArraySpec
