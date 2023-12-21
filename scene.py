@@ -22,22 +22,24 @@ class Scene:
         
     def move(self, action):
         self.snake.change_direction(action)
-        reward = 0
         done = False
         prev_head = self.snake.body[0]
         valid_move = self.snake.move(self.food_position)
+        head_x, head_y = self.snake.body[0]
         
-        if not valid_move: # The snake collided with itself or move in the opposite direction
+        # The snake collided with itself or move in the opposite direction or collided with the wall
+        if (not valid_move) or head_x < 0 or head_x >= self.width or head_y < 0 or head_y >= self.height:
             done = True
-            reward -= 15
+            reward = -20
         elif self.snake.body[0] == self.food_position:
-            self.new_food_position()
-            reward += 25
-        elif self.snake.body[0][0] < 0 or self.snake.body[0][0] >= self.width or self.snake.body[0][1] < 0 or self.snake.body[0][1] >= self.height:
-            done = True
-            reward -= 15
+            done = len(self.snake.body) == self.width * self.height
+            if done:
+                reward = 100
+            else:
+                reward = 5
+                self.new_food_position()
         else:
-            reward -= 1
+            reward = 0
             
         if done:
             self.init_snake()
@@ -127,12 +129,13 @@ class Scene:
         # Make a 4 value array, indicating if there is a wall or the snake body in each direction
         # If there is one of them, the value is 1, otherwise 0
         head_x, head_y = self.snake.body[0]
-        left = 1 if head_x == 0 or (head_x - 1, head_y) in self.snake.body[:-1] else 0
-        up = 1 if head_y == 0 or (head_x, head_y - 1) in self.snake.body[:-1] else 0
-        right = 1 if head_x == MAP_WIDTH - 1 or (head_x + 1, head_y) in self.snake.body[:-1] else 0
-        down = 1 if head_y == MAP_HEIGHT - 1 or (head_x, head_y + 1) in self.snake.body[:-1] else 0
+        prev_head_x, prev_head_y = self.snake.body[1]
+        left = 1 if head_x == 0 or (head_x - 1, head_y) in self.snake.body[:-1] or (head_x - 1, head_y) == (prev_head_x, prev_head_y) else 0
+        up = 1 if head_y == 0 or (head_x, head_y - 1) in self.snake.body[:-1] or (head_x, head_y - 1) == (prev_head_x, prev_head_y) else 0
+        right = 1 if head_x == MAP_WIDTH - 1 or (head_x + 1, head_y) in self.snake.body[:-1] or (head_x + 1, head_y) == (prev_head_x, prev_head_y) else 0
+        down = 1 if head_y == MAP_HEIGHT - 1 or (head_x, head_y + 1) in self.snake.body[:-1] or (head_x, head_y + 1) == (prev_head_x, prev_head_y) else 0
         
-        return [matrix_one_hot, [left, up, right, down]]
+        return (matrix_one_hot, np.array([left, up, right, down], dtype=bool))
 
     def run(self):
         pygame.init()

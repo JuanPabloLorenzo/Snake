@@ -18,17 +18,16 @@ class SnakeGame(PyEnvironment):
             dtype=np.float32,
             minimum=0.0,
             maximum=1.0,
-            name='observation'
+            name='scene'
         )
         
-        # These are just 0 or 1 values
         array_spec_1d = array_spec.ArraySpec(
-            shape=(4,),  # Adjust the shape according to your 1D array size
+            shape=(4,),
             dtype=bool,
             name='array_1d'
         )
 
-        return {'scene': scene_spec, 'array_1d': array_spec_1d}
+        return (scene_spec, array_spec_1d)
         
     def action_spec(self):
         # Define the action space using ArraySpec
