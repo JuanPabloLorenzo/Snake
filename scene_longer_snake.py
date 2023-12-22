@@ -12,12 +12,14 @@ MAP_WIDTH = 5
 MAP_HEIGHT = 5
 BLOCK_SIZE = 15
 
-class Scene:
-    def __init__(self, init_randomly=False):
+class SceneLongerSnake:
+    def __init__(self, init_randomly=False, snake_longer_prob=0.5, initial_length=5):
         self.height = MAP_HEIGHT; self.width = MAP_WIDTH
         self.block_size = BLOCK_SIZE
         self.init_randomly = init_randomly
         self.elements_count = 4 # Empty, Snake Head, Snake Body, Food
+        self.snake_longer_prob = snake_longer_prob
+        self.initial_length = initial_length
         self.reset()
         
     def move(self, action):
@@ -50,6 +52,12 @@ class Scene:
         return next_state, reward, done
     
     def init_snake(self):
+        rand_num = random.random()
+        if rand_num < self.snake_longer_prob:
+            temp_initial_length = self.initial_length
+        else:
+            temp_initial_length = 2
+        
         if self.init_randomly:
             head = (random.randint(0, MAP_WIDTH - 1), random.randint(0, MAP_HEIGHT - 1))
             
@@ -64,9 +72,6 @@ class Scene:
                 possible.remove(3)
             
             tail = random.choice(possible)
-            possible.remove(tail)
-            direction = random.choice(possible)
-                
             snake_initial_body = [head]
             if tail == 0:
                 snake_initial_body.append((head[0] - 1, head[1]))
@@ -76,11 +81,59 @@ class Scene:
                 snake_initial_body.append((head[0] + 1, head[1]))
             elif tail == 3:
                 snake_initial_body.append((head[0], head[1] + 1))
+                
+            self.snake = Snake(snake_initial_body)
+            
+            for i in range(1, temp_initial_length - 1):
+                possible = [0, 1, 2, 3]
+                if self.snake.body[i][0] == 0 or (self.snake.body[i][0] - 1, self.snake.body[i][1]) in self.snake.body:
+                    possible.remove(0)
+                if self.snake.body[i][0] == MAP_WIDTH - 1 or (self.snake.body[i][0] + 1, self.snake.body[i][1]) in self.snake.body:
+                    possible.remove(2)
+                if self.snake.body[i][1] == 0 or (self.snake.body[i][0], self.snake.body[i][1] - 1) in self.snake.body:
+                    possible.remove(1)
+                if self.snake.body[i][1] == MAP_HEIGHT - 1 or (self.snake.body[i][0], self.snake.body[i][1] + 1) in self.snake.body:
+                    possible.remove(3)
+                
+                if len(possible) == 0:
+                    break
+                
+                tail = random.choice(possible)
+                snake_initial_body = [head]
+                if tail == 0:
+                    self.snake.body.append((self.snake.body[i][0] - 1, self.snake.body[i][1]))
+                elif tail == 1:
+                    self.snake.body.append((self.snake.body[i][0], self.snake.body[i][1] - 1))
+                elif tail == 2:
+                    self.snake.body.append((self.snake.body[i][0] + 1, self.snake.body[i][1]))
+                elif tail == 3:
+                    self.snake.body.append((self.snake.body[i][0], self.snake.body[i][1] + 1))
+                    
+            
+            # Direction
+            possible_directions = [0, 1, 2, 3]
+            if head[0] == 0 or (head[0] - 1, head[1]) in self.snake.body:
+                possible_directions.remove(0)
+            if head[0] == MAP_WIDTH - 1 or (head[0] + 1, head[1]) in self.snake.body:
+                possible_directions.remove(2)
+            if head[1] == 0 or (head[0], head[1] - 1) in self.snake.body:
+                possible_directions.remove(1)
+            if head[1] == MAP_HEIGHT - 1 or (head[0], head[1] + 1) in self.snake.body:
+                possible_directions.remove(3)
+                
+            if len(possible_directions) == 0:
+                direction = random.choice([0, 1, 2, 3])
+            else:
+                direction = random.choice(possible_directions)
+                
+            self.snake.direction = direction
         else:
             snake_initial_body = [(MAP_WIDTH // 2, MAP_HEIGHT // 2), (MAP_WIDTH // 2 + 1, MAP_HEIGHT // 2)]
             direction = 0
+            self.snake = Snake(snake_initial_body)
+            self.snake.direction = direction
         
-        self.snake = Snake(snake_initial_body)
+
         self.snake.direction = direction
             
     def new_food_position(self):
@@ -178,5 +231,5 @@ class Scene:
         sys.exit()
         
 if __name__ == '__main__':
-    scene = Scene(init_randomly=True)
+    scene = SceneLongerSnake(init_randomly=True, snake_longer_prob=0.5, initial_length=5)
     scene.run()

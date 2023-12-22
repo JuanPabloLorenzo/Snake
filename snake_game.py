@@ -15,7 +15,7 @@ class SnakeGame(PyEnvironment):
     def observation_spec(self):
         scene_spec = array_spec.BoundedArraySpec(
             shape=(self.scene.height, self.scene.width, self.scene.elements_count),
-            dtype=np.float32,
+            dtype=np.uint8,
             minimum=0.0,
             maximum=1.0,
             name='scene'
