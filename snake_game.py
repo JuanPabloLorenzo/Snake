@@ -21,13 +21,19 @@ class SnakeGame(PyEnvironment):
             name='scene'
         )
         
-        array_spec_1d = array_spec.ArraySpec(
+        obstacles_spec = array_spec.ArraySpec(
             shape=(4,),
             dtype=bool,
-            name='array_1d'
+            name='obstacles'
+        )
+        
+        food_direction_spec = array_spec.ArraySpec(
+            shape=(4,),
+            dtype=bool,
+            name='food_direction'
         )
 
-        return (scene_spec, array_spec_1d)
+        return (scene_spec, obstacles_spec, food_direction_spec)
         
     def action_spec(self):
         # Define the action space using ArraySpec

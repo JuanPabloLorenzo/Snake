@@ -30,13 +30,11 @@ class Scene:
         # The snake collided with itself or move in the opposite direction or collided with the wall
         if (not valid_move) or head_x < 0 or head_x >= self.width or head_y < 0 or head_y >= self.height:
             done = True
-            reward = -20
+            reward = -40
         elif self.snake.body[0] == self.food_position:
             done = len(self.snake.body) == self.width * self.height
-            if done:
-                reward = 100
-            else:
-                reward = 5
+            reward = 5
+            if not done:
                 self.new_food_position()
         else:
             reward = 0
@@ -126,7 +124,7 @@ class Scene:
         matrix = self.scene_as_matrix()
         matrix_one_hot = tf.one_hot(matrix, self.elements_count, dtype=np.uint8)
         
-        # Make a 4 value array, indicating if there is a wall or the snake body in each direction
+        # Either a wall or the snake body is an obstacle
         # If there is one of them, the value is 1, otherwise 0
         head_x, head_y = self.snake.body[0]
         prev_head_x, prev_head_y = self.snake.body[1]
@@ -134,8 +132,16 @@ class Scene:
         up = 1 if head_y == 0 or (head_x, head_y - 1) in self.snake.body[:-1] or (head_x, head_y - 1) == (prev_head_x, prev_head_y) else 0
         right = 1 if head_x == MAP_WIDTH - 1 or (head_x + 1, head_y) in self.snake.body[:-1] or (head_x + 1, head_y) == (prev_head_x, prev_head_y) else 0
         down = 1 if head_y == MAP_HEIGHT - 1 or (head_x, head_y + 1) in self.snake.body[:-1] or (head_x, head_y + 1) == (prev_head_x, prev_head_y) else 0
+        obstacles = np.array([left, up, right, down], dtype=bool)
         
-        return (matrix_one_hot, np.array([left, up, right, down], dtype=bool))
+        # Return if the food is in the left, up, right or down direction
+        left = 1 if self.food_position[0] < head_x else 0
+        up = 1 if self.food_position[1] < head_y else 0
+        right = 1 if self.food_position[0] > head_x else 0
+        down = 1 if self.food_position[1] > head_y else 0
+        food_direction = np.array([left, up, right, down], dtype=bool)
+        
+        return (matrix_one_hot, obstacles, food_direction)
 
     def run(self):
         pygame.init()

@@ -17,7 +17,7 @@ scene.screen = pygame.display.set_mode((scene.width * scene.block_size, scene.he
 done = True
 steps = 0
 total_reward = 0
-sleep_time = 0.002
+sleep_time = 0.1
 
 running = True
 while running:
