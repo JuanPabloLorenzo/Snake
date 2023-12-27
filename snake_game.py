@@ -29,7 +29,7 @@ class SnakeGame(PyEnvironment):
         
         no_body_spec = array_spec.ArraySpec(
             shape=(4,),
-            dtype=np.uint8,
+            dtype=np.float32,
             name='no_body'
         )
 

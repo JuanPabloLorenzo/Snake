@@ -9,7 +9,7 @@ from scene import Scene
 scene = Scene(init_randomly=True)
 scene.reset()
 
-model = tf.keras.models.load_model("q_network.h5")
+model = tf.keras.models.load_model("q_network_5x5.h5")
 
 pygame.init()
 scene.screen = pygame.display.set_mode((scene.width * scene.block_size, scene.height * scene.block_size))
@@ -17,7 +17,7 @@ scene.screen = pygame.display.set_mode((scene.width * scene.block_size, scene.he
 done = True
 steps = 0
 total_reward = 0
-sleep_time = 0.1
+sleep_time = 0.02
 
 running = True
 while running:
@@ -27,15 +27,19 @@ while running:
         if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
             running = False
         
-    inputs = scene.state()
+    inputs = scene.state() # Inputs has 3 elements: matrix, obstacles, no_body_blocks
+    
+    matrix = np.expand_dims(inputs[0], axis=0)
+    obstacles = np.expand_dims(inputs[1], axis=0)
+    no_body_blocks = np.expand_dims(inputs[2], axis=0)
         
-    pred = model.predict([inputs[0][np.newaxis, ...], inputs[1][np.newaxis, ...]], verbose=0)[0]
+    pred = model.predict([matrix, obstacles, no_body_blocks], verbose=0)[0]
     action = np.argmax(pred)
     
     _, reward, done = scene.move(action)
     total_reward += reward
     
-    if done or steps > 50:
+    if done or steps > 300:
         scene.reset()
         steps = 0
         print("Total reward:", total_reward)

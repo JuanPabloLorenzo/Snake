@@ -142,7 +142,9 @@ class Scene:
         up = np.sum(no_body_blocks[:head_y, :])
         right = np.sum(no_body_blocks[:, head_x + 1:])
         down = np.sum(no_body_blocks[head_y + 1:, :])
-        no_body_blocks = np.array([left, up, right, down], dtype=np.uint8)
+        no_body_blocks = np.array([left, up, right, down], dtype=np.float32)
+        # Normalize the values
+        no_body_blocks = no_body_blocks / np.sum(no_body_blocks)
         
         return (matrix_one_hot, obstacles, no_body_blocks)
 
