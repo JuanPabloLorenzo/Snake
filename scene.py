@@ -134,14 +134,17 @@ class Scene:
         down = 1 if head_y == MAP_HEIGHT - 1 or (head_x, head_y + 1) in self.snake.body[:-1] or (head_x, head_y + 1) == (prev_head_x, prev_head_y) else 0
         obstacles = np.array([left, up, right, down], dtype=bool)
         
-        # Return if the food is in the left, up, right or down direction
-        left = 1 if self.food_position[0] < head_x else 0
-        up = 1 if self.food_position[1] < head_y else 0
-        right = 1 if self.food_position[0] > head_x else 0
-        down = 1 if self.food_position[1] > head_y else 0
-        food_direction = np.array([left, up, right, down], dtype=bool)
+        # Return how many blocks without the snake body are in the left, up, right or down direction
+        no_body_blocks = (matrix==0) + (matrix==3)
+        # Take snake last block, and add it as ann empty block
+        no_body_blocks[self.snake.body[-1][1], self.snake.body[-1][0]] = 1
+        left = np.sum(no_body_blocks[:, :head_x])
+        up = np.sum(no_body_blocks[:head_y, :])
+        right = np.sum(no_body_blocks[:, head_x + 1:])
+        down = np.sum(no_body_blocks[head_y + 1:, :])
+        no_body_blocks = np.array([left, up, right, down], dtype=np.uint8)
         
-        return (matrix_one_hot, obstacles, food_direction)
+        return (matrix_one_hot, obstacles, no_body_blocks)
 
     def run(self):
         pygame.init()
